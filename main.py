@@ -1,5 +1,6 @@
 import connection_test as ct
 from youtube_dl_option import youtube_dl as ydl
+import import_packages
 import pytube3 as pyt3
 import moviepy.editor as mp #pip install moviepy
 import subprocess
@@ -36,6 +37,8 @@ def download_video(service,url):
 #TODO crear funcion que se encargue de mover el archivo al directorio 
 
 def __main__():
+	# ----- Check Packages ----- # 
+	import_packages.run_packages()
 	url, service = insert_link()
 	print(url)
 	print(service)
