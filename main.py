@@ -1,138 +1,47 @@
-from pytube import YouTube #pip install pytube3
+import connection_test as ct
+from youtube_dl_option import youtube_dl as ydl
+import pytube3 as pyt3
 import moviepy.editor as mp #pip install moviepy
-from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, APIC
-from unicodedata import normalize
 import subprocess
 import requests
 import shutil
 import os
 import re
 
-def clean_string(directory):
-	string = re.sub(
-		r"([^n\u0300-\u036f]|n(?!\u0303(?![\u0300-\u036f])))[\u0300-\u036f]+", r"\1", 
-        normalize( "NFD", directory), 0, re.I)
-	return string
 
-def valid_url(url):
-	key_words  = ["youtu.be","youtube"]
-	for i in range(2):
-		if key_words[i] in url:
-			return True
-	return False
-
-#Spotify offline music directory
-music_path = "YourDirectory"
-
-# ---------- Video Download ---------- #
-success = False
-while not success:
-	success = True
-	try:
-		# url = str(input("Enter the link video: "))
-		url = "https://youtu.be/43ssTIcT"
-		video = YouTube(url).streams.filter(res="720p").first()
-		yt = YouTube(url)
-		yt_title = yt.title
-		yt_author = yt.author
-		yt_availability = yt.check_availability
-		print(yt_availability)
-		thumbnail = yt.thumbnail_url
-		downloaded_file = video.download()
-		base, ext = os.path.splitext(downloaded_file)
-		print("Downloaded!\n")
-	except:
-		print("\n**An error occurred!**\n")
-		success = False
-
-# ---------- Thumbnail download ---------- #
-res = requests.get(thumbnail,stream = True)
-thumbnail_name = "cover.png"
-if res.status_code == 200:
-    with open(thumbnail_name,'wb') as f:
-        shutil.copyfileobj(res.raw, f)
-else:
-    print('\n**Could not download thumbnail!**\n')
-
-# ---------- The video is converted to mp3 - 320kbps and deleted ---------- #
-print("Converting to mp3")
-clip = mp.VideoFileClip(downloaded_file)
-clip.audio.write_audiofile(base + ".mp3", bitrate="320k")
-clip.close()
-os.remove(downloaded_file)
-print("Converted!\n")
-
-# ---------- MP3 Edit ---------- #
-mp3_route = os.path.basename(f"{base}.mp3")
-response = ['y','n']
-edit = ""
-edit2 = ""
-while not edit in response:
-	edit = input("Do you want to edit your mp3 file? [y/n]: ")
-
-if(edit.lower() == 'y'):
-	print("\nThe data obtained from the video are: ")
-	print(f"Title: {yt_title}")
-	print(f"Author: {yt_author}")
-	while not edit2 in response:
-		edit2 = input("Do you want to change any? [y/n]: ")
-	if(edit2 == 'y'):
-		print("\nLeave empty if you don't want to modify")
-		title = input("Enter the title of song: ")
-		author = input("Enter the author of song: ")
-		if (title != ""):
-			yt_title = title
-		if(author != ""):
-			yt_author = author
-	audio = ID3(mp3_route)
-	with open(thumbnail_name, 'rb') as albumart:
-		audio['APIC'] = APIC(mime = thumbnail_name, type = 3, 
-							desc = u"Cover", data = albumart.read())
-	audio.save()
-	audio = EasyID3(mp3_route)
-	audio['title'] = yt_title
-	audio['artist'] = yt_author
-	audio.save()
-
-# ---------- We look for the directory ---------- #
-src = base + ".mp3"
-dest = music_path
-ls = os.listdir(dest)
-only_directories = [ name for name in os.listdir(dest) if os.path.isdir(os.path.join(dest, name)) ]
-artist = ""
-while artist == "":
-	artist = str(input("Enter the name of artist or directory: "))
-artist_path = ""
-for i in only_directories:
-	directory = clean_string(i)
-	if artist.lower() in directory.lower():
-		artist_path = (f"{dest}\{i}")
-		break
-#if it does not exist, it is created
-if artist_path == "":
-	artist_path = (f"{dest}\{artist.capitalize()}")
-	os.mkdir(artist_path)
-	print("Created a new directory")
-dest = artist_path
+def insert_link():
+	service = False
+	while not service:
+		url = ""
+		while not ct.valid_url(url):
+			url = str(input("Enter the link video: "))
+		#test pytube3
+		if(ct.valid_video_pytube3(url)):
+			service = "pytube3"
+			print(f"holaaaaaaaaaa {ct.valid_video_pytube3(url)}")
+		#test youtube-dl
+		elif ct.valid_video_youtube_dl(url):
+			service = "youtube-dl"
+		else:
+			print("\nThe link is invalid or the services are not available!\n")
+	return url, service
 
 
+def download_video(service,url):
+	if service == "pytube3":
+		pyt3.download_video(url)
+	elif service == "youtube-dl":
+		ydl.download_video(url)
 
-# ---------- Move files and open the new directory ---------- #
-if edit.lower() == "n":
-	#We move the thumbnail
-	shutil.move("cover.png", dest)
-else:
-	os.remove(thumbnail_name)
+#TODO crear funcion que se encargue de mover el archivo al directorio 
 
-shutil.move(src, dest)
-explorer_path = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
-subprocess.run([explorer_path, dest])
+def __main__():
+	url, service = insert_link()
+	print(url)
+	print(service)
 
+	
 
-
-
-
-
-
+if __main__:
+	__main__()
 
