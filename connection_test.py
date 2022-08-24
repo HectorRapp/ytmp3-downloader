@@ -1,4 +1,3 @@
-from pytube import YouTube #pip install pytube3
 import youtube_dl
 import requests
 

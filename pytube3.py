@@ -1,11 +1,48 @@
-from pytube import YouTube #pip install pytube3
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC
 from unicodedata import normalize
+import moviepy.editor as mp 
+from pytube import YouTube
+import requests
+import shutil
+import os
 
 #TODO hacer la funcion de descarga de video para pytube3
 def download_video(url):
-	print("asdkaj")
+	video = YouTube(url)
+	title = video.title
+	author = video.author
+	thumbnail = video.thumbnail_url
+	downloaded_file = video.streams.filter(res="720p").first().download()
+	base, ext = os.path.splitext(downloaded_file)
+	video_data = {'title': title,
+				  'author': author,
+				  'thumbnail': thumbnail,
+				  'video': downloaded_file,
+				  'path_base': base,
+				  'path_ext': ext				
+				}
+	return video_data
+
+def download_thumbnail(video_data):
+	res = requests.get(video_data['thumbnail'],stream = True)
+	thumbnail_name = "cover.png"
+	if res.status_code == 200:
+		with open(thumbnail_name,'wb') as f:
+			shutil.copyfileobj(res.raw, f)
+	else:
+		print('\n**Could not download thumbnail!**\n')
+
+def convert_video(video_data):
+	print("Converting to mp3")
+	clip = mp.VideoFileClip(video_data['video'])
+	clip.audio.write_audiofile(video_data['path_base'] + ".mp3", bitrate="320k")
+	clip.close()
+	os.remove(video_data['video'])
+	print("Converted!\n")
+
+
+	
 
 #TODO creo que lo mejor será hacer todo en esta función, cosa de que quede convertido 
 
