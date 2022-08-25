@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 import youtube_dl
-import ffmpeg
+import requests
+import shutil
 
-#TODO hacer la funcion de descarga de video para youtube-dl
 def download_video(url):
 	ydl_opts = {'format': 'bestaudio',
 			'postprocessors': [{
@@ -10,18 +10,36 @@ def download_video(url):
 			'preferredcodec': 'mp3',
 			'preferredquality': '320',
 			}],
-	        # 'outtmpl': 'youtube_dl_option/%(title)s.%(ext)s'
-
+			'ffmpeg_location':'ffmpeg-avconv/' 
 	}
 	with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-		video = ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
-		# video_info = ydl.extract_info('https://www.youtube.com/watch?v=BaW_jenozKc')
-	video_data = {'video_file': video,
-				  'video_info': 'video_info'}
+		ydl.download([url])
+		video_info = ydl.extract_info(url, False)
+	title = video_info['title']
+	author = video_info['uploader']
+	thumbnail = fix_thumbnail(video_info['thumbnail'])
+	id = video_info['id']
+	base = f"{title}-{id}"
+	video_data = {'title': title,
+				  'author': author,
+				  'thumbnail': thumbnail,
+				  'path_base': base,
+				  'path_ext': 'mp3'}
 	return video_data
 
-#FIXME el video se va a la carpeta principal, cuando debería irse a la carpeta donde está el .py
-video_data = download_video('https://www.youtube.com/watch?v=4ZEpw6nmNvs')
+def fix_thumbnail(thumbnail):
+	fixed_thumbnail = ""
+	for i in thumbnail:
+		if i == '?':
+			break
+		fixed_thumbnail+= i
+	return fixed_thumbnail
 
-#TODO hacer funcion que mueva el archivo mp3 a la otra carpeta y luego manejarlo con una funcion del mismo main
-#Puedo obtener los datos fácilmente desde youtube-dl con ydl.extract_info['title'] por ejemplo
+def download_thumbnail(thumbnail):
+	res = requests.get(thumbnail, stream = True)
+	thumbnail_name = "cover.png"
+	if res.status_code == 200:
+		with open(thumbnail_name,'wb') as f:
+			shutil.copyfileobj(res.raw, f)
+	else:
+		print('\n**Could not download thumbnail!**\n')
